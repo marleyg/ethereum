@@ -32,6 +32,7 @@ contract MetaStarter is MetaStarterStub  {
         bytes32 next; // doubly linked list for campaigns iteration. active campaigns left of campaigns[0]
         bytes32 prev; // doubly linked list for campaigns iteration. past campaigns right of campaigns[0]
         uint256 deposit; // security deposit for spam prevention
+        uint256 registration_date;
         CampaignStatus status;
     }
 
@@ -127,6 +128,7 @@ contract MetaStarter is MetaStarterStub  {
         c.desc_hash = desc_hash;
         c.identity.lsb = lsb;
         c.identity.msb = msb;
+        c.registration_date = block.timestamp;
         c.status = CampaignStatus.INIT;
         
         add_active (id);
@@ -138,10 +140,10 @@ contract MetaStarter is MetaStarterStub  {
     }
 
     modifier backend_auth (bytes32 id) {
-        if (campaigns[id].backend == msg.sender) { _ } else AuthError();
+        if (campaigns[id].backend == msg.sender) { _ } else AuthError ();
     }
 
-    function modify_status (bytes32 id, CampaignStatus status) backend_auth(id) {
+    function modify_status (bytes32 id, CampaignStatus status) backend_auth (id) {
 
         Campaign c = campaigns[id];
 
@@ -159,6 +161,10 @@ contract MetaStarter is MetaStarterStub  {
         CampaignStatusChanged (id);
     }
 
+    function notify_contributed (bytes32 id) backend_auth (id) {
+        Contributed (id);
+    }
+
     function get_identity (bytes32 id) constant returns (uint256 lsb, uint256 msb) {
         lsb = campaigns[id].identity.lsb;
         msb = campaigns[id].identity.msb;
@@ -174,6 +180,10 @@ contract MetaStarter is MetaStarterStub  {
 
     function get_creator (bytes32 id) constant returns (address creator) {
         return campaigns[id].creator;
+    }
+
+    function get_registration_date (bytes32 id) constant returns (uint256 registration_date) {
+        return campaigns[id].registration_date;
     }
 
     function get_campaign_status (bytes32 id) constant returns (CampaignStatus status) {
