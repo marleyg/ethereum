@@ -20,6 +20,8 @@ contract MetaStarterBackend is MetaStarterStub {
     
     function get_preferred_ui () constant returns (bytes32) {}
     function release_deposit (bytes32 id) {} // release security deposit, called by metastarter
+
+    function frontier_destroy (bytes32 id) {} // called by metastarter before frontier ends, reverts all active campaigns
     
     /* OPTIONAL FUNCTIONS: implemented only if the backend has the concept, unimplemented function should yield 0 */
 

@@ -18,6 +18,9 @@ contract MetaStarter is MetaStarterStub  {
     event CampaignInfoChanged (bytes32 id); // Whenever info_hash changes   
     event AuthError (); // Debugging only
 
+    event FrontierDestroy (); // contract gets destroyed, for FRONTIER only
+    address creator; // FRONTIER only, can call frontier_destroy
+
     struct ShhIdentity {
         uint256 lsb; // 256 least significant bits of whisper identity
         uint256 msb; // 256 most significant bits of whisper identity
@@ -44,6 +47,38 @@ contract MetaStarter is MetaStarterStub  {
 
     mapping (bytes32 => Campaign) campaigns;
     mapping (address => TrustProvider) trust_providers;
+
+    mapping (uint256 => address) frontier_trust_providers;
+    uint256 frontier_trust_providers_count;
+
+    function frontier_destroy () {
+
+        if (msg.sender != creator) return;
+
+        bytes32 id = 0;
+
+        while ((id = iterator_next(id)) != 0) {
+            Campaign c = campaigns[id];
+            MetaStarterBackend (c.backend).release_deposit.value (c.deposit) (id);
+            MetaStarterBackend (c.backend).frontier_destroy (id);
+        }
+
+        uint256 i;
+
+        for (i=0; i < frontier_trust_providers_count; i++) {
+            address tp_address = frontier_trust_providers[i];
+            TrustProvider tp = trust_providers[tp_address];
+            tp_address.send (tp.endowment);
+        }
+
+        FrontierDestroy ();
+
+        suicide (creator);
+    }
+
+    function MetaStarter () {
+        creator = msg.sender; // FRONTIER only
+    }
 
     // add campaign to the left of the campaign list
     function add_active (bytes32 id) private {
@@ -90,10 +125,12 @@ contract MetaStarter is MetaStarterStub  {
 
         if ((tp.identifier == 0) && (msg.value >= min_endowment*tx.gasprice)) {
             tp.identifier = identifier;
-            // PROOF OF BURN!!!
+            // PROOF OF BURN!!! (not in FRONTIER)
             tp.endowment = msg.value;
+
+            frontier_trust_providers[frontier_trust_providers_count++] = msg.sender;
         } else {
-            // ENDOWMENT IS LOST - FIX!!!
+            msg.sender.send (msg.value);
         }
     }
 
@@ -111,6 +148,8 @@ contract MetaStarter is MetaStarterStub  {
             
         Campaign c = campaigns[id];
         
+        backend.get_preferred_ui(); // FRONTIER only, check if backend is really a contract
+
         if (c.creator != 0) {
             status = false;
             return;
@@ -119,7 +158,7 @@ contract MetaStarter is MetaStarterStub  {
         if (msg.value < min_deposit*tx.gasprice) {
             // DEPOSIT IS LOST - FIX!!!
             status = false;
-            return;
+            return;            
         }
         
         c.deposit = msg.value;
@@ -188,6 +227,14 @@ contract MetaStarter is MetaStarterStub  {
 
     function get_campaign_status (bytes32 id) constant returns (CampaignStatus status) {
         return campaigns[id].status;
+    }
+
+    function get_trust_provider_identifier (address trust_provider) returns (bytes32 identifier) {
+        return trust_providers[trust_provider].identifier;
+    }
+
+    function check_trusted (address trust_provider, address backend) returns (bool trusted) {
+        return trust_providers[trust_provider].trusted_backends[backend];
     }
 
     // Iterator functions for campaigns lis

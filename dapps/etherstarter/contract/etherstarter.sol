@@ -51,6 +51,21 @@ contract EtherStarter is MetaStarterBackend {
         metastarter.modify_status (id, CampaignStatus.STARTED);
     }
 
+    function revert_campaign (bytes32 id) private {
+        Campaign c = campaigns[id];
+
+        for (uint256 i = 0; i < c.contrib_count;i++) {
+            c.contrib [i].sender.send (c.contrib[i].value);
+        }
+    }
+
+    // FRONTIER only
+    function frontier_destroy (bytes32 id) {
+        if (msg.sender == address(metastarter)) {
+            revert_campaign (id);
+        }
+    }
+
     function contribute (bytes32 id) {
         Campaign c = campaigns[id];
 
@@ -65,9 +80,7 @@ contract EtherStarter is MetaStarterBackend {
                 metastarter.notify_contributed (id);
                 metastarter.modify_status (id, CampaignStatus.COMPLETED_SUCCESS);
             } else {
-                for (uint256 i = 0; i < c.contrib_count;i++) {
-                        c.contrib [i].sender.send (c.contrib[i].value);
-                    }
+                revert_campaign (id);
                 msg.sender.send (msg.value);
                 c.has_ended = true;
                 metastarter.modify_status (id, CampaignStatus.COMPLETED_FAILURE);
@@ -95,8 +108,6 @@ contract EtherStarter is MetaStarterBackend {
 
     function release_deposit (bytes32 id) {
         if (msg.sender == address(metastarter)) {
-            Campaign c = campaigns[id];
-
             metastarter.get_creator (id).send (msg.value);
         }
     }
