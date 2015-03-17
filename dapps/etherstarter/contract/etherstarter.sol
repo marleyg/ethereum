@@ -106,7 +106,7 @@ contract EtherStarter is MetaStarterBackend {
     }
 
     function get_goal_fixed (bytes32 id) constant returns (uint256 total) {
-        return campaigns[id].contrib_total;
+        return campaigns[id].goal;
     }
 
     function get_recipient (bytes32 id) constant returns (address recipient) {
