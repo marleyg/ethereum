@@ -1,0 +1,3 @@
+[submodule "dapps/etherstarter/ethereum.js"]
+	path = dapps/etherstarter/ethereum.js
+	url = git://github.com/ethereum/ethereum.js
