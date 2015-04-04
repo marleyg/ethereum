@@ -1,0 +1,24 @@
+#!/bin/sh
+
+function build_contracts () {
+	pushd contract > /dev/null
+
+	mkdir ../build
+
+	solc {etherstarter,metastarter,metastarterstub}.sol --binary file --json-abi file
+
+	for i in EtherStarter MetaStarter MetastarterBackend
+	do
+		mv $i.binary ../build
+		cat $i.abi | tr -d '\n' | tr -d ' ' > ../build/$i.abi
+	done
+
+	rm -f *.abi
+	rm -f *.binary
+
+	popd > /dev/null
+}
+
+function to_upper () {
+	echo $1 | tr '[:lower:]' '[:upper:]'
+}

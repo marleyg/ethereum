@@ -1,0 +1,17 @@
+#!/bin/sh
+
+. tools/mkcommon
+
+function awk_line () {
+	echo "BEGIN{getline l < \"build/$1\"}/$(to_upper $1)/{gsub(\"$(to_upper $1)\",l)}1"
+}
+
+build_contracts
+
+cat test_template.js \
+	| awk "$(awk_line MetaStarter.binary)"  \
+	| awk "$(awk_line EtherStarter.binary)" \
+	| awk "$(awk_line EtherStarter.abi)" \
+	| awk "$(awk_line MetaStarter.abi)" \
+	| awk "$(awk_line MetaStarterBackend.abi)" \
+	> test.js;

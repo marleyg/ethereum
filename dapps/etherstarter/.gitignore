@@ -1,6 +1,5 @@
 javascripts/script.js
 stylesheets/*.css
-*.html
 node_modules
 .sass-cache
 todo.txt
