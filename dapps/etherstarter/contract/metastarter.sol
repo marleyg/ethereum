@@ -21,15 +21,11 @@ contract MetaStarter is MetaStarterStub  {
     event FrontierDestroy (); // contract gets destroyed, for FRONTIER only
     address creator; // FRONTIER only, can call frontier_destroy
 
-    struct ShhIdentity {
-        uint256 lsb; // 256 least significant bits of whisper identity
-        uint256 msb; // 256 most significant bits of whisper identity
-    }
-
     struct Campaign {
         bytes32 desc_hash; // hash over title + description, immutable
         bytes32 info_hash; // hash over updates, mutable by creator
-        ShhIdentity identity; // associated whsiper identity
+        uint256 identity_lsb; // 256 least significant bits of whisper identity
+        uint256 identity_msb; // 256 most significant bits of whisper identity
         address backend; // address of backend contract
         address creator; // address of campaign creator
         bytes32 next; // doubly linked list for campaigns iteration. active campaigns left of campaigns[0]
@@ -150,7 +146,7 @@ contract MetaStarter is MetaStarterStub  {
         
         backend.get_preferred_ui(); // FRONTIER only, check if backend is really a contract
 
-        if (c.creator != 0) {
+        if (c.backend != 0) {
             status = false;
             return;
         }
@@ -165,8 +161,8 @@ contract MetaStarter is MetaStarterStub  {
         c.backend = backend;
         c.creator = creator;
         c.desc_hash = desc_hash;
-        c.identity.lsb = lsb;
-        c.identity.msb = msb;
+        c.identity_lsb = lsb;
+        c.identity_msb = msb;
         c.registration_date = block.timestamp;
         c.status = CampaignStatus.INIT;
         
@@ -205,8 +201,8 @@ contract MetaStarter is MetaStarterStub  {
     }
 
     function get_identity (bytes32 id) constant returns (uint256 lsb, uint256 msb) {
-        lsb = campaigns[id].identity.lsb;
-        msb = campaigns[id].identity.msb;
+        lsb = campaigns[id].identity_lsb;
+        msb = campaigns[id].identity_msb;
     }
 
     function get_desc_hash (bytes32 id) constant returns (bytes32 next) {
