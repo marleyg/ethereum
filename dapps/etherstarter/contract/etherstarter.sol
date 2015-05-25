@@ -1,6 +1,7 @@
 import "metastarterstub.sol";
 import "metastarter.sol";
 
+/// @title EtherStarter
 contract EtherStarter is MetaStarterBackend {    
     
     MetaStarter metastarter; 
@@ -19,38 +20,57 @@ contract EtherStarter is MetaStarterBackend {
         uint256 contrib_total; // amount raised
         uint256 contrib_count; // number of contributions
         mapping (uint256 => Contribution) contrib; // maps contribution id to contribution
-        bool has_ended; // block.timestamp > deadline
     }    
 
     mapping (bytes32 => Campaign) campaigns;    
     
-    function EtherStarter (address meta_address) {
-        metastarter = MetaStarter (meta_address);
+    function EtherStarter () {
         creator = msg.sender;
     }
 
-    function set_ui (bytes32 ui) {
-        if ((ui_hash == 0) && (msg.sender == creator)) {
+    /// @dev Initialize contract
+    /// @param meta_address Address of the metastarter
+    /// @param ui Hash of the associated ui
+    function init_contract (address meta_address, bytes32 ui) {
+        if ((address(metastarter) == 0) && (msg.sender == creator)) {
+            metastarter = MetaStarter (meta_address);
             ui_hash = ui;
         }
     }
-    
-    function create_campaign (address recipient, uint256 goal, uint256 deadline, uint256 identity_lsb, uint256 identity_msb, bytes32 desc_hash) {        
+
+    /// @notice Create a campaign for `goal` wei for recipient `recipient`
+    /// @dev Create a campaign and register it with MetaStarter
+    /// @param recipient Recipient for the raised funds
+    /// @param goal Minimum value required for payout
+    /// @param deadline Deadline for campaign
+    /// @param identity_lsb 256 lower significant bits of the associated whisper identity
+    /// @param identity_msb 256 upper significant bits of the associated whisper identity
+    /// @param desc_hash Hash of the description for the campaign
+    /// @return true if campaign was created, false if not
+    function create_campaign (address recipient, uint256 goal, uint256 deadline, uint256 identity_lsb, uint256 identity_msb, bytes32 desc_hash) returns (bool success) {        
         if (deadline < block.timestamp) return;                
+        if (goal == 0) return;
 
-        metastarter.register_campaign.value(msg.value) (msg.sender, desc_hash, identity_lsb, identity_msb);
-        
-        var id = compute_id (this, msg.sender, desc_hash, identity_lsb, identity_msb);
-        
-        Campaign c = campaigns [id];
+        var id = metastarter.register_campaign.value(msg.value) (msg.sender, desc_hash, identity_lsb, identity_msb);
 
-        c.recipient = recipient;
-        c.goal = goal;
-        c.deadline = deadline;
+        if (id != 0) {            
+
+            Campaign c = campaigns [id];
+
+            c.recipient = recipient;
+            c.goal = goal;
+            c.deadline = deadline;
+            
+            metastarter.modify_status (id, CampaignStatus.STARTED);
+
+            return true;
+        }
         
-        metastarter.modify_status (id, CampaignStatus.STARTED);
+        return false;
     }
 
+    /// @dev Returns all contributions for campaign
+    /// @param id ID of the campaign
     function revert_campaign (bytes32 id) private {
         Campaign c = campaigns[id];
 
@@ -59,13 +79,15 @@ contract EtherStarter is MetaStarterBackend {
         }
     }
 
-    // FRONTIER only
+    /// @dev FRONTIER only
     function frontier_destroy (bytes32 id) {
         if (msg.sender == address(metastarter)) {
             revert_campaign (id);
         }
     }
 
+    /// @notice Contribute to campaign `id`
+    /// @param id ID of the campaign
     function contribute (bytes32 id) {
         Campaign c = campaigns[id];
 
@@ -74,15 +96,16 @@ contract EtherStarter is MetaStarterBackend {
             return;
         }
 
+        var status = metastarter.get_campaign_status (id);
+
         if (block.timestamp > c.deadline) {
-            if (c.has_ended) {
+            if (status == CampaignStatus.FUNDED) {
                 msg.sender.send (msg.value);
                 metastarter.notify_contributed (id);
                 metastarter.modify_status (id, CampaignStatus.COMPLETED_SUCCESS);
-            } else {
+            } else if (status == CampaignStatus.STARTED) {
                 revert_campaign (id);
-                msg.sender.send (msg.value);
-                c.has_ended = true;
+                msg.sender.send (msg.value);                
                 metastarter.modify_status (id, CampaignStatus.COMPLETED_FAILURE);
             }
         } else {
@@ -94,13 +117,13 @@ contract EtherStarter is MetaStarterBackend {
             con.sender = msg.sender;
             con.value = msg.value;
 
-            if (c.has_ended) {
+            if (status == CampaignStatus.FUNDED) {
                 c.recipient.send (msg.value);
             } else if (total >= c.goal) {
                 c.recipient.send (total);
-                c.has_ended = true;
                 metastarter.modify_status (id, CampaignStatus.FUNDED);
             }
+
             c.contrib_count++;
             metastarter.notify_contributed (id);
         }
@@ -112,7 +135,11 @@ contract EtherStarter is MetaStarterBackend {
         }
     }
 
-    function get_preferred_ui () constant returns (bytes32) {
+    function get_progress (bytes32 id) constant returns (uint256 progress) {
+        return campaigns[id].contrib_total;
+    }
+
+    function get_preferred_ui () constant returns (bytes32 ui_hash) {
         return ui_hash;
     }
 
@@ -126,5 +153,9 @@ contract EtherStarter is MetaStarterBackend {
 
     function get_deadline (bytes32 id) constant returns (uint256 deadline) {
         return campaigns[id].deadline;
+    }
+
+    function () returns (uint256) {
+        return 0;
     }
 }

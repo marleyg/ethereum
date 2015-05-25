@@ -3,20 +3,19 @@ import "metastarterstub.sol";
 /*
     TODO
 
-    Port to natspec
-    Fix issues where deposits and endowments are lost
+    Finish natspec comments
 */
 
+/// @title MetaStarter
 contract MetaStarter is MetaStarterStub  {    
 
-    uint256 constant min_deposit = 50000;
-    uint256 constant min_endowment = 5000;
+    uint256 constant min_deposit = 5;
+    uint256 constant min_endowment = 5;
 
-    event CampaignCreated (bytes32 id); // After create_campaign
-    event Contributed (bytes32 id); // Whenever contrib_count increases
-    event CampaignStatusChanged (bytes32 id); // When status changes
-    event CampaignInfoChanged (bytes32 id); // Whenever info_hash changes   
-    event AuthError (); // Debugging only
+    event CampaignCreated (bytes32 indexed id); // After create_campaign
+    event Contributed (bytes32 indexed id); // Whenever contrib_count increases
+    event CampaignStatusChanged (bytes32 indexed id); // When status changes
+    event CampaignInfoChanged (bytes32 indexed id); // Whenever info_hash changes   
 
     event FrontierDestroy (); // contract gets destroyed, for FRONTIER only
     address creator; // FRONTIER only, can call frontier_destroy
@@ -47,6 +46,7 @@ contract MetaStarter is MetaStarterStub  {
     mapping (uint256 => address) frontier_trust_providers;
     uint256 frontier_trust_providers_count;
 
+    /// @dev Self-destruct function for the end of frontier. Cancels all campaigns and returns endowments
     function frontier_destroy () {
 
         if (msg.sender != creator) return;
@@ -76,7 +76,8 @@ contract MetaStarter is MetaStarterStub  {
         creator = msg.sender; // FRONTIER only
     }
 
-    // add campaign to the left of the campaign list
+    /// @dev Add campaign to the left of the campaign list
+    /// @param id ID of the campaign
     function add_active (bytes32 id) private {
         Campaign c = campaigns[id];
 
@@ -88,7 +89,8 @@ contract MetaStarter is MetaStarterStub  {
             campaigns[c.prev].next = id;
     }
 
-    // removes campaign from list and readds it to the right list
+    /// @dev Remove campaign from the campaign list and readds it to the right list
+    /// @param id ID of the campaign
     function transfer_inactive (bytes32 id) private {
         Campaign c = campaigns[id];
 
@@ -106,7 +108,7 @@ contract MetaStarter is MetaStarterStub  {
     }
 
 
-    // Change info_hash if sender is creator
+    /// @dev Change info_hash iff sender is creator of the campaign
     function modify_info_hash (bytes32 id, bytes32 info_hash) {
         Campaign c = campaigns[id];
 
@@ -116,20 +118,27 @@ contract MetaStarter is MetaStarterStub  {
         }
     }
 
-    function register_trust_provider (bytes32 identifier) {
+    /// @notice Register as trust provider with identifier `identifier`
+    /// @param identifier Identifier to use for readability
+    /// @return true if registration successful, false if not
+    function register_trust_provider (bytes32 identifier) returns (bool status) {
         TrustProvider tp = trust_providers[msg.sender];
 
         if ((tp.identifier == 0) && (msg.value >= min_endowment*tx.gasprice)) {
             tp.identifier = identifier;
-            // PROOF OF BURN!!! (not in FRONTIER)
+            // PROOF OF BURN (not in FRONTIER)
             tp.endowment = msg.value;
 
-            frontier_trust_providers[frontier_trust_providers_count++] = msg.sender;
-        } else {
-            msg.sender.send (msg.value);
+            frontier_trust_providers[frontier_trust_providers_count++] = msg.sender;            
+            return true;
         }
+
+        return false;
     }
 
+    /// @notice Set trust value for backend `backend` to `trusted`
+    /// @param backend Backend to set trust value for
+    /// @param trusted New trust value for backend
     function set_trust (address backend, bool trusted) {
         TrustProvider tp = trust_providers[msg.sender];
 
@@ -138,25 +147,22 @@ contract MetaStarter is MetaStarterStub  {
         }
     }
 
-    function register_campaign (address creator, bytes32 desc_hash, uint256 lsb, uint256 msb) returns (bool status) {
+    /// @dev Register campaign with MetaStarter. Value sent with this call is used as security deposit, the timestamp as registration_date. If successful, the campaign will be in INIT state
+    /// @param creator Creator of the campaign
+    /// @param desc_hash Hash of the description for the campaign
+    /// @param lsb 256 lower significant bits of the associated whisper identity
+    /// @param msb 256 upper significant bits of the associated whisper identity
+    /// @return Id for the registered campaign, 0 on failure
+    function register_campaign (address creator, bytes32 desc_hash, uint256 lsb, uint256 msb) returns (bytes32 id) {
         var backend = MetaStarterBackend(msg.sender);
-        var id = compute_id (msg.sender, creator, desc_hash, lsb, msb);
+        id = compute_id (msg.sender, creator, desc_hash, lsb, msb);
             
         Campaign c = campaigns[id];
         
-        backend.get_preferred_ui(); // FRONTIER only, check if backend is really a contract
-
-        if (c.backend != 0) {
-            status = false;
-            return;
+        if ((c.backend != 0) || (msg.value < min_deposit*tx.gasprice)) {
+            return 0;
         }
 
-        if (msg.value < min_deposit*tx.gasprice) {
-            // DEPOSIT IS LOST - FIX!!!
-            status = false;
-            return;            
-        }
-        
         c.deposit = msg.value;
         c.backend = backend;
         c.creator = creator;
@@ -170,14 +176,17 @@ contract MetaStarter is MetaStarterStub  {
 
         CampaignCreated (id);
         
-        status = true;
-        return;
+        return id;
     }
 
+    /// @dev Modifier to check if the sender matches the backend for campaign
     modifier backend_auth (bytes32 id) {
-        if (campaigns[id].backend == msg.sender) { _ } else AuthError ();
+        if (campaigns[id].backend == msg.sender) { _ }
     }
 
+    /// @dev Modify status of a campaign. The first time it is set to a COMPLETED state, the security deposit is released, the campaign is marked inactive and further call will be ignored
+    /// @param id ID of the campaign
+    /// @param status New status for the campaign
     function modify_status (bytes32 id, CampaignStatus status) backend_auth (id) {
 
         Campaign c = campaigns[id];
@@ -196,6 +205,7 @@ contract MetaStarter is MetaStarterStub  {
         CampaignStatusChanged (id);
     }
 
+    /// @dev Trigger Contributed event
     function notify_contributed (bytes32 id) backend_auth (id) {
         Contributed (id);
     }
@@ -214,7 +224,7 @@ contract MetaStarter is MetaStarterStub  {
     }
 
     function get_creator (bytes32 id) constant returns (address creator) {
-        return campaigns[id].creator;
+        return campaigns[id].creator;        
     }
 
     function get_registration_date (bytes32 id) constant returns (uint256 registration_date) {
@@ -225,20 +235,32 @@ contract MetaStarter is MetaStarterStub  {
         return campaigns[id].status;
     }
 
-    function get_trust_provider_identifier (address trust_provider) returns (bytes32 identifier) {
+    function get_trust_provider_identifier (address trust_provider) constant returns (bytes32 identifier) {
         return trust_providers[trust_provider].identifier;
     }
 
-    function check_trusted (address trust_provider, address backend) returns (bool trusted) {
+    function get_trust_provider_endowment (address trust_provider) constant returns (uint256 endowment) {
+        return trust_providers[trust_provider].endowment;
+    }
+
+    function get_backend (bytes32 id) constant returns (address backend) {
+        return campaigns[id].backend;
+    }
+
+    function check_trusted (address trust_provider, address backend) constant returns (bool trusted) {
         return trust_providers[trust_provider].trusted_backends[backend];
     }
 
-    // Iterator functions for campaigns lis
-
+    /// @dev Get campaign in campaign list after campaign id. iterator_next(0) yields the first completed campaign
+    /// @param id ID of the campaign
+    /// @return id of the next campaign
     function iterator_next (bytes32 id) constant returns (bytes32 next) {
         return campaigns[id].next;
     }
 
+    /// @dev Get campaign in campaign list before campaign id. iterator_prev(0) yields the first ongoing campaign
+    /// @param id ID of the campaign
+    /// @return id of the previous campaign
     function iterator_prev (bytes32 id) constant returns (bytes32 prev) {
         return campaigns[id].prev;
     }
