@@ -3,18 +3,22 @@
 function build_contracts () {
 	pushd contract > /dev/null
 
-	mkdir ../build
+	mkdir -p ../build
 
-	solc {etherstarter,metastarter,metastarterstub}.sol --binary file --json-abi file
+	solc {etherstarter,metastarter,metastarterstub}.sol --binary file --json-abi file --natspec-user file --natspec-dev file
 
 	for i in EtherStarter MetaStarter MetastarterBackend
 	do
 		mv $i.binary ../build
+		mv $i.docuser ../build
+		mv $i.docdev ../build
 		cat $i.abi | tr -d '\n' | tr -d ' ' > ../build/$i.abi
 	done
 
 	rm -f *.abi
 	rm -f *.binary
+	rm -f *.docuser
+	rm -f *.docdev
 
 	popd > /dev/null
 }
