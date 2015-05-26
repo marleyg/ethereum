@@ -1,48 +1,49 @@
-var web3 = require ('ethereum.js');
-web3.setProvider(new web3.providers.HttpProvider('http://localhost:3000'));
+/*var web3 = require ('ethereum.js');
+web3.setProvider(new web3.providers.HttpProvider('http://localhost:3000'));*/
 
-metastarter_bin = "METASTARTER.BINARY"
+var source = SOLIDITY
 
-etherstarter_bin= "ETHERSTARTER.BINARY"
+var contracts = eth.compile.solidity (source)
 
-metastarter_abi = METASTARTER.ABI
+var EtherStarter = web3.eth.contract (contracts.EtherStarter.info.abiDefinition)
+var MetaStarter = web3.eth.contract (contracts.MetaStarter.info.abiDefinition)
+var MetaStarterBackend = web3.eth.contract (contracts.MetaStarterBackend.info.abiDefinition)
 
-metastarter_backend_abi = METASTARTERBACKEND.ABI
+/* TEST1 (init - create campaign - contribute - contribute_finish)
 
-etherstarter_abi = ETHERSTARTER.ABI
+var b200 = eth.getBalance (200)
 
-var eth = web3.eth
+var metastarter = MetaStarter.new ({from: eth.coinbase, gas: 2000000, data: contracts.MetaStarter.code})
+var etherstarter = EtherStarter.new (metastarter.address, 0xdeadbeef, {from: eth.coinbase, gas: 2000000, data: contracts.EtherStarter.code})
 
-web3.eth.filter('latest').watch (function () {
-	console.log ('block')
-})
+etherstarter.create_campaign(200, 1000, 1451606400, 0, 0, 0, {from: eth.coinbase, gas:0xfffff, value:10*eth.gasPrice})
 
-console.log (eth.coinbase + ": "+ eth.getBalance(eth.coinbase))
-console.log ("can afford " + eth.getBalance(eth.coinbase) / eth.gasPrice + " gas @" + eth.gasPrice)
-console.log ("blocklimit " + eth.getBlock(eth.blockNumber).gasLimit)
+admin.miner.start()
 
-/* metastarter deploy */
+sleep (3)
 
-var meta_addr = 0;
-var ether_addr = 0;
+id = metastarter.iterator_prev (0)
 
-web3.eth.sendTransaction({from: eth.coinbase, code: metastarter_bin, gas: 1000000}, function (err, metastarter_address) {
-	if (err) console.log (err)
-	meta_addr = metastarter_address
-	console.log ('ms deployed? ' + metastarter_address)
-});
+console.log('id = ' + id)
 
-web3.eth.sendTransaction({from: eth.coinbase, code: etherstarter_bin, gas: 1000000}, function (err, etherstarter_address) {
-	if (err) console.log (err)
-	ether_addr = etherstarter_address
-	console.log ('es deployed? ' + etherstarter_address)
-});
+etherstarter.contribute (id, {from: eth.coinbase, gas: 300000, value: 100})
 
-var MetaStarter = web3.eth.contract (metastarter_abi)
-var EtherStarter = web3.eth.contract (etherstarter_abi)
+etherstarter.contribute (id, {from: eth.coinbase, gas: 300000, value: 1000})
 
-var metastarter = MetaStarter.at (meta_addr)
-var etherstarter = EtherStarter.at (ether_addr)
+sleep (3)
 
+admin.miner.stop()
+
+sleep (1)
+
+var diff = eth.getBalance (200) - b200
+
+console.log (diff + '== 1100')
+
+/*
+
+loadScript('~/Checkout/ethereum-vienna/dapps/etherstarter/test.js')
+
+*/
 
 // ./geth --unlock primary --rpc --rpccorsdomain "*" --rpcport 3000 --vmdebug --loglevel 4 console
