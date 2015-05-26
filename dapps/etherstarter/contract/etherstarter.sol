@@ -5,8 +5,7 @@ import "metastarter.sol";
 contract EtherStarter is MetaStarterBackend {    
     
     MetaStarter metastarter; 
-    address creator; // only for setting ui hash   
-    bytes32 ui_hash;
+    uint256 ui_hash;
     
     struct Contribution {
         address sender;
@@ -24,18 +23,9 @@ contract EtherStarter is MetaStarterBackend {
 
     mapping (bytes32 => Campaign) campaigns;    
     
-    function EtherStarter () {
-        creator = msg.sender;
-    }
-
-    /// @dev Initialize contract
-    /// @param meta_address Address of the metastarter
-    /// @param ui Hash of the associated ui
-    function init_contract (address meta_address, bytes32 ui) {
-        if ((address(metastarter) == 0) && (msg.sender == creator)) {
-            metastarter = MetaStarter (meta_address);
-            ui_hash = ui;
-        }
+    function EtherStarter (address meta_address, uint256 ui) {
+        metastarter = MetaStarter (meta_address);
+        ui_hash = ui;
     }
 
     /// @notice Create a campaign for `goal` wei for recipient `recipient`
@@ -139,7 +129,7 @@ contract EtherStarter is MetaStarterBackend {
         return campaigns[id].contrib_total;
     }
 
-    function get_preferred_ui () constant returns (bytes32 ui_hash) {
+    function get_preferred_ui () constant returns (uint256) {
         return ui_hash;
     }
 
