@@ -5,20 +5,7 @@ function build_contracts () {
 
 	mkdir -p ../build
 
-	solc {etherstarter,metastarter,metastarterstub}.sol --binary file --json-abi file --natspec-user file --natspec-dev file
-
-	for i in EtherStarter MetaStarter MetastarterBackend
-	do
-		mv $i.binary ../build
-		mv $i.docuser ../build
-		mv $i.docdev ../build
-		cat $i.abi | tr -d '\n' | tr -d ' ' > ../build/$i.abi
-	done
-
-	rm -f *.abi
-	rm -f *.binary
-	rm -f *.docuser
-	rm -f *.docdev
+	(echo \" && awk 'FNR==1{print ""}1' metastarterstub.sol metastarter.sol etherstarter.sol | sed -e '/^import/d' | tr '\n' 'ß' | sed -e 's#ß#\\n#g' && echo \") | tr -d '\n' | sed 's#&#\\&#g' > ../build/solidity
 
 	popd > /dev/null
 }

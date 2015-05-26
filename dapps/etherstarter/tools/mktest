@@ -8,10 +8,4 @@ function awk_line () {
 
 build_contracts
 
-cat test_template.js \
-	| awk "$(awk_line MetaStarter.binary)"  \
-	| awk "$(awk_line EtherStarter.binary)" \
-	| awk "$(awk_line EtherStarter.abi)" \
-	| awk "$(awk_line MetaStarter.abi)" \
-	| awk "$(awk_line MetaStarterBackend.abi)" \
-	> test.js;
+cat test_template.js | awk "$(awk_line solidity)" > test.js;
