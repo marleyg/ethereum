@@ -21,7 +21,7 @@ contract EtherStarter is MetaStarterBackend {
         mapping (uint256 => Contribution) contrib; // maps contribution id to contribution
     }    
 
-    mapping (bytes32 => Campaign) campaigns;    
+    mapping (uint256 => Campaign) campaigns;    
     
     function EtherStarter (address meta_address, uint256 ui) {
         metastarter = MetaStarter (meta_address);
@@ -61,7 +61,7 @@ contract EtherStarter is MetaStarterBackend {
 
     /// @dev Returns all contributions for campaign
     /// @param id ID of the campaign
-    function revert_campaign (bytes32 id) private {
+    function revert_campaign (uint256 id) private {
         Campaign c = campaigns[id];
 
         for (uint256 i = 0; i < c.contrib_count;i++) {
@@ -70,7 +70,7 @@ contract EtherStarter is MetaStarterBackend {
     }
 
     /// @dev FRONTIER only
-    function frontier_destroy (bytes32 id) {
+    function frontier_destroy (uint256 id) {
         if (msg.sender == address(metastarter)) {
             revert_campaign (id);
         }
@@ -78,7 +78,7 @@ contract EtherStarter is MetaStarterBackend {
 
     /// @notice Contribute to campaign `id`
     /// @param id ID of the campaign
-    function contribute (bytes32 id) {
+    function contribute (uint256 id) {
         Campaign c = campaigns[id];
 
         if (c.recipient == 0) {
@@ -119,13 +119,13 @@ contract EtherStarter is MetaStarterBackend {
         }
     }
 
-    function release_deposit (bytes32 id) {
+    function release_deposit (uint256 id) {
         if (msg.sender == address(metastarter)) {
             metastarter.get_creator (id).send (msg.value);
         }
     }
 
-    function get_progress (bytes32 id) constant returns (uint256 progress) {
+    function get_progress (uint256 id) constant returns (uint256 progress) {
         return campaigns[id].contrib_total;
     }
 
@@ -133,15 +133,15 @@ contract EtherStarter is MetaStarterBackend {
         return ui_hash;
     }
 
-    function get_goal_fixed (bytes32 id) constant returns (uint256 total) {
+    function get_goal_fixed (uint256 id) constant returns (uint256 total) {
         return campaigns[id].goal;
     }
 
-    function get_recipient (bytes32 id) constant returns (address recipient) {
+    function get_recipient (uint256 id) constant returns (address recipient) {
         return campaigns[id].recipient;
     }
 
-    function get_deadline (bytes32 id) constant returns (uint256 deadline) {
+    function get_deadline (uint256 id) constant returns (uint256 deadline) {
         return campaigns[id].deadline;
     }
 
