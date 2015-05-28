@@ -8,4 +8,4 @@ function awk_line () {
 
 build_contracts
 
-cat test_template.js | awk "$(awk_line solidity)" > test.js;
+cat tests/test_template.js | awk "$(awk_line solidity)" > tests/test.js;
