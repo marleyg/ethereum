@@ -1,0 +1,1 @@
+geth --datadir data/ --maxpeers 0 --verbosity 0 js test.js
