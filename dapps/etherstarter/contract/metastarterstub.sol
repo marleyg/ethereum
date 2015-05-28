@@ -30,4 +30,5 @@ contract MetaStarterBackend is MetaStarterStub {
     function get_deadline (uint256 id) constant returns (uint256 deadline); // deadline: no more funding after this date
     function get_goal_fixed (uint256 id) constant returns (uint256 deadline); // goal: goal if it is set to a fixed value
     function get_recipient (uint256 id) constant returns (address recipient); // recipient: address of recipient if there is one
+    function get_progress (uint256 id) constant returns (uint256 progress);
 }
