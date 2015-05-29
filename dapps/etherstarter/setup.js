@@ -1,5 +1,3 @@
-admin.addPeer('enode://17a6997e009b8eef778e87ce69a38e0992fd679e257bef2815197c4cc7b76f008367d0e3aae57ee7243e094022a82dee353f5861c2741a6c419c112d463b99be@162.213.197.174:30303')
-
 loadScript('utils.js')
 loadScript('whisper-swarm.js')
 

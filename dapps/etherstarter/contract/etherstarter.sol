@@ -29,7 +29,7 @@ contract EtherStarter is MetaStarterBackend {
     }
 
     /// @notice Create a campaign for `goal` wei for recipient `recipient`
-    /// @dev Create a campaign and register it with MetaStarter
+    /// @dev Create a campaign and register it with MetaStarter. Requires at MetaStarter.min_deposit * gasPrice as security deposit.
     /// @param recipient Recipient for the raised funds
     /// @param goal Minimum value required for payout
     /// @param deadline Deadline for campaign
@@ -37,7 +37,7 @@ contract EtherStarter is MetaStarterBackend {
     /// @param identity_msb 256 upper significant bits of the associated whisper identity
     /// @param desc_hash Hash of the description for the campaign
     /// @return true if campaign was created, false if not
-    function create_campaign (address recipient, uint256 goal, uint256 deadline, uint256 identity_lsb, uint256 identity_msb, bytes32 desc_hash) returns (bool success) {        
+    function create_campaign (address recipient, uint256 goal, uint256 deadline, uint256 identity_lsb, uint256 identity_msb, uint256 desc_hash) returns (bool success) {        
         if (deadline < block.timestamp) return;                
         if (goal == 0) return;
 

@@ -21,8 +21,8 @@ contract MetaStarter is MetaStarterStub  {
     address creator; // FRONTIER only, can call frontier_destroy
 
     struct Campaign {
-        bytes32 desc_hash; // hash over title + description, immutable
-        bytes32 info_hash; // hash over updates, mutable by creator
+        uint256 desc_hash; // hash over title + description, immutable
+        uint256 info_hash; // hash over updates, mutable by creator
         uint256 identity_lsb; // 256 least significant bits of whisper identity
         uint256 identity_msb; // 256 most significant bits of whisper identity
         address backend; // address of backend contract
@@ -109,7 +109,7 @@ contract MetaStarter is MetaStarterStub  {
 
 
     /// @dev Change info_hash iff sender is creator of the campaign
-    function modify_info_hash (uint256 id, bytes32 info_hash) {
+    function modify_info_hash (uint256 id, uint256 info_hash) {
         Campaign c = campaigns[id];
 
         if (msg.sender == c.creator) {
@@ -153,7 +153,7 @@ contract MetaStarter is MetaStarterStub  {
     /// @param lsb 256 lower significant bits of the associated whisper identity
     /// @param msb 256 upper significant bits of the associated whisper identity
     /// @return Id for the registered campaign, 0 on failure
-    function register_campaign (address creator, bytes32 desc_hash, uint256 lsb, uint256 msb) returns (uint256 id) {
+    function register_campaign (address creator, uint256 desc_hash, uint256 lsb, uint256 msb) returns (uint256 id) {
         var backend = MetaStarterBackend(msg.sender);
         id = compute_id (msg.sender, creator, desc_hash, lsb, msb);
             
@@ -215,11 +215,11 @@ contract MetaStarter is MetaStarterStub  {
         msb = campaigns[id].identity_msb;
     }
 
-    function get_desc_hash (uint256 id) constant returns (bytes32 next) {
+    function get_desc_hash (uint256 id) constant returns (uint256 hash) {
         return campaigns[id].desc_hash;
     }
 
-    function get_info_hash (uint256 id) constant returns (bytes32 prev) {
+    function get_info_hash (uint256 id) constant returns (uint256 hash) {
         return campaigns[id].info_hash;
     }
 
@@ -249,6 +249,11 @@ contract MetaStarter is MetaStarterStub  {
 
     function check_trusted (address trust_provider, address backend) constant returns (bool trusted) {
         return trust_providers[trust_provider].trusted_backends[backend];
+    }
+
+    function get_minimal_deposits () constant returns (uint256 deposit, uint256 endowment) {
+        deposit = min_deposit;
+        endowment = min_endowment;
     }
 
     /// @dev Get campaign in campaign list after campaign id. iterator_next(0) yields the first completed campaign

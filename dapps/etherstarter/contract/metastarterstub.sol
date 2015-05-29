@@ -10,7 +10,7 @@ contract MetaStarterStub {
         INVALID
     }
 
-    function compute_id (address backend, address creator, bytes32 desc_hash, uint256 lsb, uint256 msb) constant returns (uint256 id) {
+    function compute_id (address backend, address creator, uint256 desc_hash, uint256 lsb, uint256 msb) constant returns (uint256 id) {
         id = uint256 (sha3 (backend, creator, desc_hash, lsb, msb));
     }
 
